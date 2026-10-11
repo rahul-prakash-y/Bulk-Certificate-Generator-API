@@ -99,6 +99,14 @@ GET /certificates/{recipient_id}
 
 Returns the PDF file as `application/pdf`.
 
+### Download all certificates as a ZIP archive
+
+```http
+GET /jobs/{job_id}/archive
+```
+
+Returns a ZIP file containing all successfully generated certificates for the job.
+
 ---
 
 ## Design Decisions
@@ -128,17 +136,24 @@ Generated PDFs are stored in a local `generated_certificates/` directory (config
 
 ```
 bulk_cert_api/
-├── main.py              # App factory, lifespan, startup
-├── config.py            # Settings (pydantic-settings / .env)
-├── database.py          # SQLAlchemy engine + session factory
-├── models/              # ORM models
-├── schemas/             # Pydantic request/response schemas
-├── routers/             # FastAPI route handlers
-│   └── health.py        # GET /health
-└── services/            # Business logic (job + certificate)
+├── main.py                   # App factory, lifespan, startup
+├── config.py                 # Settings (pydantic-settings / .env)
+├── database.py               # SQLAlchemy engine + session factory
+├── models/                   # ORM models (Job, Recipient)
+├── schemas/                  # Pydantic request/response schemas
+├── routers/                  # FastAPI route handlers
+│   ├── health.py             # GET /health
+│   ├── jobs.py               # POST /jobs, GET /jobs/{id}, GET /jobs/{id}/archive
+│   └── certificates.py       # GET /certificates/{recipient_id}
+└── services/                 # Business logic
+    ├── certificate_service.py # ReportLab PDF generator
+    └── job_service.py        # Job orchestration & error isolation
 tests/
-├── conftest.py          # Shared fixtures
-├── test_jobs.py         # Job creation + status tests
-├── test_certificates.py # Certificate retrieval tests
-└── test_validation.py   # Input validation tests
+├── conftest.py               # Shared fixtures & test database
+├── test_certificates.py      # Unit tests for ReportLab PDF rendering
+├── test_certificates_api.py  # Integration tests for certificate downloads
+├── test_health.py            # Health check & documentation tests
+├── test_jobs.py              # Job creation, polling, archive ZIP tests
+├── test_security_boundary.py # Security & boundary condition tests
+└── test_validation.py        # Pydantic schema validation tests
 ```

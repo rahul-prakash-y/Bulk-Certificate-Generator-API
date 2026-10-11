@@ -142,6 +142,10 @@ class JobService:
         """Retrieve a job by ID, with recipients eagerly loaded."""
         return await self._db.get(Job, job_id)
 
+    async def get_recipient(self, recipient_id: str) -> Recipient | None:
+        """Retrieve an individual recipient by ID."""
+        return await self._db.get(Recipient, recipient_id)
+
 
 def _safe_error_message(exc: Exception) -> str:
     """

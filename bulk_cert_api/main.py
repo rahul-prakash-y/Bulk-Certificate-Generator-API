@@ -23,7 +23,9 @@ from fastapi import FastAPI
 
 from bulk_cert_api.config import settings
 from bulk_cert_api.database import Base, engine
+from bulk_cert_api.routers.certificates import router as certificates_router
 from bulk_cert_api.routers.health import router as health_router
+from bulk_cert_api.routers.jobs import router as jobs_router
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -86,9 +88,8 @@ def create_app() -> FastAPI:
 
     # Routers
     app.include_router(health_router)
-    # Future routers (added in later modules):
-    # app.include_router(jobs_router, prefix="/jobs")
-    # app.include_router(certificates_router, prefix="/certificates")
+    app.include_router(jobs_router)
+    app.include_router(certificates_router)
 
     return app
 
