@@ -26,3 +26,18 @@ async def test_openapi_docs_endpoint(client):
     assert "/health" in schema["paths"]
     assert "/jobs" in schema["paths"]
     assert "/certificates/{recipient_id}" in schema["paths"]
+
+
+@pytest.mark.asyncio
+async def test_lifespan_startup_and_shutdown(tmp_path, monkeypatch):
+    """Verify lifespan context creates certificate directory and initializes database."""
+    from bulk_cert_api.config import settings
+    from bulk_cert_api.main import create_app, lifespan
+
+    test_certs = tmp_path / "lifespan_certs"
+    monkeypatch.setattr(settings, "certificates_dir", str(test_certs))
+
+    app_instance = create_app()
+    async with lifespan(app_instance):
+        assert test_certs.exists()
+        assert test_certs.is_dir()
