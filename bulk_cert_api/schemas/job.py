@@ -28,6 +28,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 MAX_EVENT_NAME_LENGTH = 200
 MAX_RECIPIENT_NAME_LENGTH = 150
+MAX_BATCH_SIZE = 500
 
 
 # ---------------------------------------------------------------------------
@@ -100,7 +101,8 @@ class JobCreateRequest(BaseModel):
     recipients: list[RecipientRequest] = Field(
         ...,
         min_length=1,
-        description="List of recipients. Must contain at least one entry.",
+        max_length=MAX_BATCH_SIZE,
+        description=f"List of recipients. Must contain between 1 and {MAX_BATCH_SIZE} entries.",
     )
 
     @field_validator("event_name", mode="before")

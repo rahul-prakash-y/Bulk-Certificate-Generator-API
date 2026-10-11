@@ -132,3 +132,77 @@ async def test_batch_boundary_size(client):
     assert data["total"] == 25
     assert data["succeeded"] == 25
     assert data["failed"] == 0
+
+
+@pytest.mark.asyncio
+async def test_batch_size_exceeding_max_limit_returns_422(client):
+    """Submitting more than MAX_BATCH_SIZE (500) recipients returns 422."""
+    recipients = [
+        {"name": f"Member {i}", "email": f"m{i}@example.com"}
+        for i in range(501)
+    ]
+    payload = {
+        "event_name": "Over Limit Event",
+        "issued_date": "2025-10-11",
+        "recipients": recipients,
+    }
+    response = await client.post("/jobs", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_os_reserved_name_sanitization(client):
+    """Names matching OS reserved keywords (CON, PRN, AUX, NUL) are safely sanitized."""
+    payload = {
+        "event_name": "Reserved Name Event",
+        "issued_date": "2025-10-11",
+        "recipients": [
+            {"name": "CON", "email": "con@example.com"},
+            {"name": "NUL", "email": "nul@example.com"},
+        ],
+    }
+    response = await client.post("/jobs", json=payload)
+    assert response.status_code == 202
+    data = response.json()
+    assert data["succeeded"] == 2
+
+    job_id = data["job_id"]
+    status_resp = await client.get(f"/jobs/{job_id}")
+    recipient_id = status_resp.json()["results"][0]["recipient_id"]
+
+    # Verify download succeeds with safe filename
+    dl_resp = await client.get(f"/certificates/{recipient_id}")
+    assert dl_resp.status_code == 200
+    assert "content-disposition" in dl_resp.headers
+
+
+@pytest.mark.asyncio
+async def test_unhandled_exception_masks_internal_details(client, monkeypatch):
+    """Unhandled exceptions return a safe generic 500 response without stack traces."""
+    from bulk_cert_api.services.job_service import JobService
+
+    async def mock_crash(*args, **kwargs):
+        raise RuntimeError("Secret DB credentials and internal server crash: /etc/secrets/key.pem")
+
+    monkeypatch.setattr(JobService, "create_and_process_job", mock_crash)
+
+    payload = {
+        "event_name": "Crash Event",
+        "issued_date": "2025-10-11",
+        "recipients": [{"name": "Crash User", "email": "crash@example.com"}],
+    }
+    from bulk_cert_api.main import app
+    from httpx import ASGITransport, AsyncClient
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app, raise_app_exceptions=False),
+        base_url="http://test",
+    ) as unhandled_client:
+        response = await unhandled_client.post("/jobs", json=payload)
+
+    assert response.status_code == 500
+    data = response.json()
+    assert data["detail"] == "An internal server error occurred. Please try again later."
+    assert "Secret" not in str(data)
+    assert "traceback" not in str(data).lower()
+    assert "/etc/secrets" not in str(data)

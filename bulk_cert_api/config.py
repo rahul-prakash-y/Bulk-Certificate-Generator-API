@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     # File storage
     certificates_dir: str = "generated_certificates"
 
+    # Batch limits
+    max_batch_size: int = 500
+
 
 # Single shared instance — import this everywhere.
 settings = Settings()

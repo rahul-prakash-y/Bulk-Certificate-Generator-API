@@ -22,11 +22,16 @@ from bulk_cert_api.services.job_service import JobService
 router = APIRouter(prefix="/certificates", tags=["certificates"])
 
 
+_RESERVED_NAMES = {"CON", "PRN", "AUX", "NUL"} | {f"COM{i}" for i in range(1, 10)} | {f"LPT{i}" for i in range(1, 10)}
+
+
 def _sanitize_name(name: str) -> str:
-    """Sanitize name to prevent path traversal or invalid characters in filenames."""
+    """Sanitize name to prevent path traversal, reserved names, or invalid characters."""
     cleaned = re.sub(r"[^\w\s-]", "_", name)
     cleaned = re.sub(r"[-\s]+", "_", cleaned).strip("._ ")
-    return cleaned or "certificate"
+    if not cleaned or cleaned.upper() in _RESERVED_NAMES:
+        return "certificate"
+    return cleaned
 
 
 @router.get(

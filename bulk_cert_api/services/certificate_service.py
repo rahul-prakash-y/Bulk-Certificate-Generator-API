@@ -75,19 +75,14 @@ class CertificateService:
         filename = f"{data.recipient_id}.pdf"
         filepath = self._output_dir / filename
 
-        logger.info(
-            "Generating certificate for %s (%s) → %s",
-            data.recipient_name,
-            data.recipient_email,
-            filepath,
-        )
+        logger.info("Generating certificate for recipient_id=%s", data.recipient_id)
 
         self._render_pdf(filepath, data)
 
         if not filepath.exists():
-            raise OSError(f"Certificate file was not created: {filepath}")
+            raise OSError(f"Certificate file was not created: {filepath.name}")
 
-        logger.info("Certificate generated: %s", filepath)
+        logger.info("Certificate generated successfully for recipient_id=%s", data.recipient_id)
         return filepath.resolve()
 
     # ------------------------------------------------------------------

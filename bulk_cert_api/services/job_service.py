@@ -80,10 +80,9 @@ class JobService:
         await self._db.refresh(job)
 
         logger.info(
-            "Job %s created: %d recipients for '%s'",
+            "Job %s created: %d recipients",
             job.id,
             job.total,
-            job.event_name,
         )
 
         # 2. Process each recipient independently
@@ -106,11 +105,10 @@ class JobService:
                 succeeded += 1
 
             except Exception as exc:
-                # Log full error internally; store safe message on recipient
+                # Log error internally; store safe message on recipient
                 logger.error(
-                    "Certificate generation failed for recipient %s (%s): %s",
+                    "Certificate generation failed for recipient_id=%s: %s",
                     recipient.id,
-                    recipient.name,
                     exc,
                 )
                 recipient.status = RecipientStatus.FAILED
